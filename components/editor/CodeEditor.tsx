@@ -44,7 +44,7 @@ export default function CodeEditor({
     // Add custom context menu actions
     editor.addAction({
       id: "explain-code",
-      label: "Explain Code",
+      label: "🤖 Explain Code with AI",
       contextMenuGroupId: "codesensei",
       contextMenuOrder: 1,
       run: (ed) => {
@@ -57,6 +57,8 @@ export default function CodeEditor({
               detail: { code: selectedText },
             }),
           );
+        } else {
+          alert("Please select code first before explaining");
         }
       },
     });

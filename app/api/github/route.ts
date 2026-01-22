@@ -26,11 +26,10 @@ export async function POST(request: NextRequest) {
         files: fileTree,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch repository";
     console.error("Error fetching GitHub repo:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch repository" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

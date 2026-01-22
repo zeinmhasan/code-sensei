@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import Modal from "./Modal";
-import { CodeExplanation } from "@/types";
 import MarkdownRenderer from "@/components/ui/MarkdownRenderer";
 import {
-  FaBook,
-  FaKey,
-  FaLightbulb,
+  FaFolder,
+  FaLink,
   FaPaperPlane,
   FaSpinner,
   FaUser,
@@ -19,19 +17,26 @@ interface Message {
   content: string;
 }
 
-interface ExplainModalProps {
+interface FolderExplanation {
+  role: string;
+  relation: string;
+}
+
+interface FolderExplainModalProps {
   isOpen: boolean;
   onClose: () => void;
-  explanation: CodeExplanation | null;
+  folderName: string;
+  explanation: FolderExplanation | null;
   isLoading?: boolean;
 }
 
-export default function ExplainModal({
+export default function FolderExplainModal({
   isOpen,
   onClose,
+  folderName,
   explanation,
   isLoading,
-}: ExplainModalProps) {
+}: FolderExplainModalProps) {
   const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [isAskingFollowUp, setIsAskingFollowUp] = useState(false);
   const [conversation, setConversation] = useState<Message[]>([]);
@@ -53,9 +58,9 @@ export default function ExplainModal({
     try {
       // Build original context from explanation
       const originalContext = `
-Logika Kerja: ${explanation.logika}
-Key Terms: ${explanation.keyTerms?.map((t) => `${t.term}: ${t.definition}`).join(", ") || "N/A"}
-Analogi: ${explanation.analogy || "N/A"}
+Folder: ${folderName}
+Role: ${explanation.role}
+Relation: ${explanation.relation}
       `.trim();
 
       const response = await fetch("/api/explain", {
@@ -111,72 +116,46 @@ Analogi: ${explanation.analogy || "N/A"}
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="🎓 Code Explanation"
-      size="xl"
+      title={`📁 ${folderName || "Folder Explanation"}`}
+      size="lg"
     >
       <div className="max-h-[70vh] overflow-y-auto">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-600 border-t-blue-500"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-600 border-t-purple-500"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <FaRobot className="text-blue-400 text-xl" />
+                <FaFolder className="text-purple-400 text-xl" />
               </div>
             </div>
             <p className="mt-4 text-gray-400 animate-pulse">
-              CodeSensei sedang menganalisis kode...
+              Menganalisis struktur folder...
             </p>
           </div>
         ) : explanation ? (
           <div className="space-y-6">
-            {/* Logika Kerja Section */}
+            {/* Role Section */}
             <div className="bg-blue-900/10 border border-blue-500/20 rounded-xl p-5 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
               <h3 className="text-lg font-bold text-blue-400 mb-3 flex items-center gap-2">
-                <FaBook className="text-blue-400" />
-                Logika Kerja
+                <FaFolder className="text-blue-400" />
+                Role
               </h3>
               <div className="text-gray-200 relative z-10">
-                <MarkdownRenderer content={explanation.logika} />
+                <MarkdownRenderer content={explanation.role} />
               </div>
             </div>
 
-            {/* Key Terms Section */}
-            {explanation.keyTerms && explanation.keyTerms.length > 0 && (
-              <div className="bg-green-900/10 border border-green-500/20 rounded-xl p-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
-                <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
-                  <FaKey className="text-green-400" />
-                  Key Terms
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-2 relative z-10">
-                  {explanation.keyTerms.map((term, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-900/40 backdrop-blur-md rounded-lg p-4 border border-green-500/10 hover:border-green-500/30 transition-colors"
-                    >
-                      <h4 className="font-bold text-green-300 mb-1 text-sm">
-                        {term.term}
-                      </h4>
-                      <div className="text-gray-300 text-sm leading-relaxed">
-                        <MarkdownRenderer content={term.definition} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Analogy Section */}
-            {explanation.analogy && (
+            {/* Relations Section */}
+            {explanation.relation && (
               <div className="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
                 <h3 className="text-lg font-bold text-purple-400 mb-3 flex items-center gap-2">
-                  <FaLightbulb className="text-purple-400" />
-                  Analogi
+                  <FaLink className="text-purple-400" />
+                  Relations
                 </h3>
-                <div className="text-gray-200 italic relative z-10">
-                  <MarkdownRenderer content={explanation.analogy} />
+                <div className="text-gray-200 relative z-10">
+                  <MarkdownRenderer content={explanation.relation} />
                 </div>
               </div>
             )}
@@ -198,7 +177,7 @@ Analogi: ${explanation.analogy || "N/A"}
                       <div
                         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                           msg.role === "user"
-                            ? "bg-blue-600 shadow-lg shadow-blue-900/20"
+                            ? "bg-purple-600 shadow-lg shadow-purple-900/20"
                             : "bg-gray-700 border border-gray-600"
                         }`}
                       >
@@ -211,7 +190,7 @@ Analogi: ${explanation.analogy || "N/A"}
                       <div
                         className={`flex-1 rounded-2xl p-4 text-sm ${
                           msg.role === "user"
-                            ? "bg-blue-600/10 border border-blue-500/20 text-blue-100 ml-8 rounded-tr-none"
+                            ? "bg-purple-600/10 border border-purple-500/20 text-purple-100 ml-8 rounded-tr-none"
                             : "bg-gray-800/60 border border-gray-700/50 text-gray-200 mr-8 rounded-tl-none"
                         }`}
                       >
@@ -233,15 +212,15 @@ Analogi: ${explanation.analogy || "N/A"}
                   value={followUpQuestion}
                   onChange={(e) => setFollowUpQuestion(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Tanyakan sesuatu tentang penjelasan di atas... (Enter untuk kirim)"
-                  className="w-full bg-[#0d1117] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500/50 resize-none transition-all shadow-inner"
+                  placeholder="Tanyakan sesuatu tentang folder ini... (Enter untuk kirim)"
+                  className="w-full bg-[#0d1117] border border-gray-700 rounded-xl px-4 py-3 pr-12 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none transition-all shadow-inner custom-scrollbar"
                   rows={2}
                   disabled={isAskingFollowUp}
                 />
                 <button
                   onClick={handleAskFollowUp}
                   disabled={!followUpQuestion.trim() || isAskingFollowUp}
-                  className="absolute right-3 bottom-3 p-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
+                  className="absolute right-3 bottom-3 p-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed rounded-lg text-white transition-colors"
                 >
                   {isAskingFollowUp ? (
                     <FaSpinner className="animate-spin" />

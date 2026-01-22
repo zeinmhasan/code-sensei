@@ -69,13 +69,13 @@ function TreeNode({
   return (
     <div>
       <div
-        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-700 cursor-pointer rounded"
+        className="flex items-center gap-2 px-2 py-1 hover:bg-white/5 cursor-pointer rounded transition-colors duration-150 group"
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={handleClick}
         onContextMenu={handleRightClick}
       >
         {isFolder && (
-          <span className="text-gray-400">
+          <span className="text-gray-500 group-hover:text-gray-300 transition-colors">
             {isOpen ? (
               <FaChevronDown size={10} />
             ) : (
@@ -85,14 +85,22 @@ function TreeNode({
         )}
         {isFolder ? (
           isOpen ? (
-            <FaFolderOpen className="text-yellow-500" size={14} />
+            <FaFolderOpen className="text-blue-400" size={14} />
           ) : (
-            <FaFolder className="text-yellow-500" size={14} />
+            <FaFolder
+              className="text-blue-400 group-hover:text-blue-300 transition-colors"
+              size={14}
+            />
           )
         ) : (
-          <FaFile className="text-gray-400" size={14} />
+          <FaFile
+            className="text-gray-500 group-hover:text-gray-400 transition-colors"
+            size={14}
+          />
         )}
-        <span className="text-gray-200">{node.name}</span>
+        <span className="text-gray-300 group-hover:text-white transition-colors text-xs font-medium">
+          {node.name}
+        </span>
       </div>
       {isFolder && isOpen && node.children && (
         <div>

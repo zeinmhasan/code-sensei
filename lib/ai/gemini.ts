@@ -8,7 +8,7 @@ if (!process.env.GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const getGeminiModel = () => {
-  return genAI.getGenerativeModel({ model: "gemini-pro" });
+  return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 };
 
 export async function explainCode(
@@ -162,6 +162,46 @@ Berikan hint berupa:
 3. JANGAN berikan jawaban langsung
 
 Jawab dengan bahasa yang mendorong user untuk berpikir sendiri.
+`;
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  return response.text();
+}
+
+// Follow-up question for deeper understanding
+export async function followUpQuestion(
+  originalContext: string,
+  question: string,
+  conversationHistory?: { role: "user" | "assistant"; content: string }[],
+): Promise<string> {
+  const model = getGeminiModel();
+
+  const historyContext = conversationHistory
+    ? conversationHistory
+        .map(
+          (msg) =>
+            `${msg.role === "user" ? "User" : "CodeSensei"}: ${msg.content}`,
+        )
+        .join("\n")
+    : "";
+
+  const prompt = `
+Kamu adalah CodeSensei, asisten AI yang membantu developer memahami kode.
+
+Konteks sebelumnya:
+${originalContext}
+
+${historyContext ? `Percakapan sebelumnya:\n${historyContext}\n\n` : ""}
+Pertanyaan user: ${question}
+
+Berikan jawaban yang:
+1. Jelas dan mudah dipahami
+2. Relevan dengan konteks yang sudah dijelaskan
+3. Berikan contoh jika membantu pemahaman
+4. Gunakan bahasa Indonesia yang natural
+
+Jawab dengan format markdown yang rapi.
 `;
 
   const result = await model.generateContent(prompt);
