@@ -3,13 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  FaCode,
-  FaArrowLeft,
-  FaPlay,
-  FaLightbulb,
-  FaSave,
-} from "react-icons/fa";
+import { FaCode, FaArrowLeft, FaPlay, FaLightbulb } from "react-icons/fa";
 import { ProjectProvider, useProject } from "@/lib/context/ProjectContext";
 import FileTree from "@/components/tree-view/FileTree";
 import CodeEditor from "@/components/editor/CodeEditor";
@@ -17,10 +11,12 @@ import ExplanationPanel from "@/components/ExplanationPanel";
 import ChatSidebar from "@/components/ChatSidebar";
 import ExplainModal from "@/components/modals/ExplainModal";
 import FolderExplainModal from "@/components/modals/FolderExplainModal";
+import ChallengeModal from "@/components/modals/ChallengeModal";
 import ContextMenu from "@/components/ui/ContextMenu";
 import { LoadingSpinner, Button } from "@/components/ui";
 import { FileNode } from "@/types";
 import { getFileLanguage } from "@/lib/utils/helpers";
+import { getProjectById } from "@/lib/supabase/client";
 import axios from "axios";
 
 function ProjectWorkspace() {
@@ -48,6 +44,7 @@ function ProjectWorkspace() {
 
   const [showExplainModal, setShowExplainModal] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [folderExplanation, setFolderExplanation] = useState<{
     role: string;
     relation: string;
@@ -63,33 +60,23 @@ function ProjectWorkspace() {
     node: FileNode;
   } | null>(null);
 
-  // Load project data from localStorage
+  // Load project data from Supabase
   useEffect(() => {
-    const loadProject = () => {
+    const loadProject = async () => {
       try {
-        const stored = localStorage.getItem("codesensei_projects");
-        if (!stored) {
-          router.push("/dashboard");
-          return;
-        }
-
-        const projects = JSON.parse(stored);
-        const project = projects.find(
-          (p: { id: string }) => p.id === projectId,
-        );
+        const project = await getProjectById(projectId);
 
         if (!project) {
           router.push("/dashboard");
           return;
         }
 
-        setProject(
-          project.id,
-          project.name,
-          project.owner,
-          project.name,
-          project.files,
-        );
+        // Extract owner and repo from repo_url
+        const match = project.repo_url.match(/github\.com\/([^/]+)\/([^/]+)/);
+        const owner = match ? match[1] : "";
+        const repo = match ? match[2].replace(/\.git$/, "") : project.name;
+
+        setProject(project.id, project.name, owner, repo, project.files);
       } catch (error) {
         console.error("Failed to load project:", error);
         router.push("/dashboard");
@@ -268,6 +255,14 @@ function ProjectWorkspace() {
             size="sm"
             icon={<FaPlay className="text-xs" />}
             className="text-xs px-3 h-8 bg-green-900/20 text-green-400 hover:bg-green-900/30 border border-green-500/20"
+            onClick={() => {
+              if (!selectedFile || !fileContent) {
+                alert("Pilih file terlebih dahulu untuk memulai challenge!");
+                return;
+              }
+              setShowChallengeModal(true);
+            }}
+            disabled={!selectedFile || !fileContent}
           >
             Start Challenge
           </Button>
@@ -305,9 +300,6 @@ function ProjectWorkspace() {
                     {selectedFile.path}
                   </span>
                 </div>
-                <Button variant="ghost" size="sm" icon={<FaSave />}>
-                  Save
-                </Button>
               </div>
               <div className="flex-1 overflow-hidden relative">
                 {isLoadingFile ? (
@@ -363,21 +355,11 @@ function ProjectWorkspace() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-hidden p-0 relative">
+          <div className="flex-1 overflow-hidden p-0">
             {activeTab === "explanation" ? (
               <ExplanationPanel />
             ) : (
               <ChatSidebar />
-            )}
-
-            {/* Placeholder Empty State for sidebar */}
-            {activeTab === "explanation" && !explanation && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-gray-500">
-                <FaLightbulb className="text-3xl mb-3 opacity-20" />
-                <p className="text-sm">
-                  Select code and right-click to explain
-                </p>
-              </div>
             )}
           </div>
         </div>
@@ -398,6 +380,15 @@ function ProjectWorkspace() {
         folderName={contextMenu?.node?.name || ""}
         explanation={folderExplanation}
         isLoading={isLoadingFolder}
+      />
+
+      {/* Challenge Modal */}
+      <ChallengeModal
+        isOpen={showChallengeModal}
+        onClose={() => setShowChallengeModal(false)}
+        originalCode={fileContent}
+        fileName={selectedFile?.name || ""}
+        language={getFileLanguage(selectedFile?.name || "")}
       />
 
       {/* Context Menu */}

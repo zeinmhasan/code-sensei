@@ -3,8 +3,18 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FaGithub, FaCode, FaPlus, FaClock, FaTrash } from "react-icons/fa";
+import {
+  FaGithub,
+  FaCode,
+  FaPlus,
+  FaClock,
+  FaTrash,
+  FaSignOutAlt,
+  FaHistory,
+} from "react-icons/fa";
 import { Button, Input, LoadingSpinner, EmptyState } from "@/components/ui";
+import { useAuth } from "@/contexts/AuthContext";
+import { saveProject, getProjects, deleteProject } from "@/lib/supabase/client";
 
 interface Project {
   id: string;
@@ -13,27 +23,30 @@ interface Project {
   owner: string;
   files: unknown;
   created_at: string;
+  user_id?: string;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [repoUrl, setRepoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
 
-  // Load projects from localStorage
+  // Load projects from Supabase
   useEffect(() => {
-    loadProjects();
-  }, []);
+    if (user) {
+      loadProjectsFromDB();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
-  const loadProjects = () => {
+  const loadProjectsFromDB = async () => {
     try {
-      const stored = localStorage.getItem("codesensei_projects");
-      if (stored) {
-        setProjects(JSON.parse(stored));
-      }
+      const data = await getProjects(user?.id);
+      setProjects(data || []);
     } catch (err) {
       console.error("Failed to load projects:", err);
     } finally {
@@ -72,29 +85,16 @@ export default function DashboardPage() {
         throw new Error(result.error || "Failed to import repository");
       }
 
-      // Create new project
-      const projectId = crypto.randomUUID();
-      const newProject: Project = {
-        id: projectId,
+      // Create new project in Supabase
+      const newProject = await saveProject({
         name: result.data.repo,
         repo_url: repoUrl,
+        user_id: user?.id,
         files: result.data.files,
-        owner: result.data.owner,
-        created_at: new Date().toISOString(),
-      };
-
-      // Save to localStorage
-      const existingProjects = JSON.parse(
-        localStorage.getItem("codesensei_projects") || "[]",
-      );
-      existingProjects.unshift(newProject);
-      localStorage.setItem(
-        "codesensei_projects",
-        JSON.stringify(existingProjects),
-      );
+      });
 
       // Navigate to project workspace
-      router.push(`/project/${projectId}`);
+      router.push(`/project/${newProject.id}`);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to import repository",
@@ -108,13 +108,20 @@ export default function DashboardPage() {
     router.push(`/project/${projectId}`);
   };
 
-  const handleDeleteProject = (e: React.MouseEvent, projectId: string) => {
+  const handleDeleteProject = async (
+    e: React.MouseEvent,
+    projectId: string,
+  ) => {
     e.stopPropagation(); // Prevent navigation when clicking delete
 
     if (confirm("Are you sure you want to delete this project?")) {
-      const updated = projects.filter((p) => p.id !== projectId);
-      setProjects(updated);
-      localStorage.setItem("codesensei_projects", JSON.stringify(updated));
+      try {
+        await deleteProject(projectId);
+        setProjects(projects.filter((p) => p.id !== projectId));
+      } catch (err) {
+        console.error("Failed to delete project:", err);
+        alert("Failed to delete project. Please try again.");
+      }
     }
   };
 
@@ -143,9 +150,30 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-white">CodeSensei</h1>
           </Link>
           <div className="flex items-center gap-4">
+            {user && (
+              <span className="text-gray-400 text-sm">{user.email}</span>
+            )}
             <span className="px-3 py-1 rounded-full bg-blue-900/30 border border-blue-500/20 text-blue-300 text-sm font-medium">
               Dashboard
             </span>
+            <Link href="/history">
+              <Button
+                variant="secondary"
+                icon={<FaHistory />}
+                size="sm"
+                className="hover:bg-gray-800"
+              >
+                History
+              </Button>
+            </Link>
+            <Button
+              onClick={signOut}
+              variant="secondary"
+              icon={<FaSignOutAlt />}
+              size="sm"
+            >
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -215,14 +243,6 @@ export default function DashboardPage() {
                 {projects.length === 1 ? "project" : "projects"} imported
               </p>
             </div>
-            <Button
-              onClick={loadProjects}
-              variant="ghost"
-              size="sm"
-              className="hover:bg-gray-800 rounded-lg"
-            >
-              Refresh
-            </Button>
           </div>
 
           {loadingProjects ? (
