@@ -125,19 +125,23 @@ Kamu adalah CodeSensei. Buat tantangan coding untuk user dengan level ${level}.
 Instruksi: ${instructions[level]}
 
 Kode asli:
-\`\`\`
 ${code}
-\`\`\`
 
 Kembalikan kode yang sudah dimodifikasi dengan mengganti bagian yang dihapus dengan komentar:
 // TODO: TULIS KODE DISINI
 
-Berikan hanya kode yang sudah dimodifikasi, tanpa penjelasan tambahan.
+PENTING: Berikan hanya kode yang sudah dimodifikasi saja, tanpa markdown code fence (\`\`\`), tanpa nama bahasa, dan tanpa penjelasan tambahan apapun.
 `;
 
   const result = await model.generateContent(prompt);
   const response = await result.response;
-  return response.text();
+  let modifiedCode = response.text().trim();
+
+  // Remove markdown code fences if AI still includes them
+  modifiedCode = modifiedCode.replace(/^```[\w]*\n?/g, "");
+  modifiedCode = modifiedCode.replace(/\n?```$/g, "");
+
+  return modifiedCode.trim();
 }
 
 export async function generateHint(
