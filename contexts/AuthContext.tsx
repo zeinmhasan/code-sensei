@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           name,
         },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://code-sensei-blue.vercel.app"}/login`,
       },
     });
 

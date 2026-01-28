@@ -63,9 +63,18 @@ export default function RegisterPage() {
           <h2 className="text-2xl font-bold text-white mb-2">
             Account Created!
           </h2>
-          <p className="text-gray-400">
-            Your account has been successfully created. Redirecting to login...
-          </p>
+          <p className="text-gray-400 mb-4">Akun Anda telah berhasil dibuat.</p>
+          <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-4">
+            <p className="text-blue-300 text-sm font-medium mb-2">
+              Cek Email Anda!
+            </p>
+            <p className="text-gray-300 text-sm">
+              Kami telah mengirimkan email verifikasi ke{" "}
+              <strong>{email}</strong>. Silakan klik link verifikasi untuk
+              mengaktifkan akun Anda.
+            </p>
+          </div>
+          <p className="text-gray-400 text-sm">Redirecting to login...</p>
         </div>
       </div>
     );
